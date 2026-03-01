@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca de Páginas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #000 0%, #055 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .carousel-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .carousel {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 20px 0;
+            scroll-behavior: smooth;
+            scroll-snap-type: x mandatory;
+            max-width: 90vw;
+        }
+
+        .carousel::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .carousel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .carousel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+        }
+
+        .carousel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .card {
+            flex: 0 0 auto;
+            width: 280px;
+            height: 350px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            scroll-snap-align: center;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 200px;
+            background: #f0f0f0;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #999;
+            border-bottom: 2px solid #eee;
+        }
+
+        .card-content {
+            padding: 20px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .card-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .card-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.3s;
+            width: 100%;
+        }
+
+        .card-button:hover {
+            opacity: 0.9;
+        }
+
+        .carousel-btn {
+            background: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            color: #667eea;
+        }
+
+        .carousel-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 30px;
+            }
+
+            .carousel-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .card {
+                width: 240px;
+                height: 310px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GYANN  HOME</h1>
+        
+        <div class="carousel-wrapper">
+            <button class="carousel-btn" onclick="scrollCarousel(-1)">❮</button>
+            
+            <div class="carousel" id="carousel">
+                <!-- Tarjeta YouTube -->
+                <div class="card" onclick="redirectTo('WEBS/memorama.html', event)">
+                    <img src="imgs webs/memorama.png" alt="YouTube" class="card-image">
+                    <div class="card-content">
+                        <div>
+                            <div class="card-title">Memorama</div>
+                            <div class="card-description">Juego de Memoria</div>
+                        </div>
+                        <button class="card-button">Visitar</button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta Twitch -->
+                <div class="card" onclick="redirectTo('https://www.twitch.tv', event)">
+                    <img src= alt="Twitch" class="card-image">
+                    <div class="card-content">
+                        <div>
+                            <div class="card-title">Twitch</div>
+                            <div class="card-description">Cambia esta URL por tu canal de Twitch</div>
+                        </div>
+                        <button class="card-button">Visitar</button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Ejemplo 3 -->
+                <div class="card" onclick="redirectTo('https://www.ejemplo.com', event)">
+                    <img src="https://via.placeholder.com/280x200?text=Página+3" alt="Página 3" class="card-image">
+                    <div class="card-content">
+                        <div>
+                            <div class="card-title">Mi Página 3</div>
+                            <div class="card-description">Añade tu tercera página aquí</div>
+                        </div>
+                        <button class="card-button">Visitar</button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Ejemplo 4 -->
+                <div class="card" onclick="redirectTo('https://www.ejemplo.com', event)">
+                    <img src="https://via.placeholder.com/280x200?text=Página+4" alt="Página 4" class="card-image">
+                    <div class="card-content">
+                        <div>
+                            <div class="card-title">Mi Página 4</div>
+                            <div class="card-description">Añade tu cuarta página aquí</div>
+                        </div>
+                        <button class="card-button">Visitar</button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Ejemplo 5 -->
+                <div class="card" onclick="redirectTo('https://www.ejemplo.com', event)">
+                    <img src="https://via.placeholder.com/280x200?text=Página+5" alt="Página 5" class="card-image">
+                    <div class="card-content">
+                        <div>
+                            <div class="card-title">Mi Página 5</div>
+                            <div class="card-description">Añade tu quinta página aquí</div>
+                        </div>
+                        <button class="card-button">Visitar</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="carousel-btn" onclick="scrollCarousel(1)">❯</button>
+        </div>
+    </div>
+
+    <script>
+        function scrollCarousel(direction) {
+            const carousel = document.getElementById('carousel');
+            const scrollAmount = 320; // Ancho de la tarjeta + gap
+            
+            if (direction === -1) {
+                carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            } else {
+                carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            }
+        }
+
+        function redirectTo(url, event) {
+            event.preventDefault();
+            window.location.href = url;
+        }
+
+        // Permitir navegación con teclado
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowLeft') {
+                scrollCarousel(-1);
+            } else if (event.key === 'ArrowRight') {
+                scrollCarousel(1);
+            }
+        });
+    </script>
+</body>
+</html>
