@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busca Minas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: white;
+        }
+        .container {
+            text-align: center;
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .stats div {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            min-width: 150px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 40px);
+            gap: 4px;
+            margin: 20px auto;
+            padding: 10px;
+            background: #ddd;
+            width: fit-content;
+            border-radius: 5px;
+        }
+        #back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            border: none;
+            background: #2196f3;
+            color: #fff;
+            border-radius: 5px;
+            font-size: 1.5em;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #bbb;
+            color: #333;
+            transition: all 0.1s;
+        }
+        .cell:hover {
+            background: #999;
+        }
+        .cell.revealed {
+            background: #e0e0e0;
+            cursor: default;
+        }
+        .cell.mine {
+            background: #ff4444;
+            color: white;
+        }
+        .cell.flagged {
+            background: #ffcc00;
+        }
+        .cell.empty {
+            color: #ccc;
+        }
+        button.reset {
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        button.reset:hover {
+            background: #764ba2;
+        }
+        .message {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 15px 0;
+            min-height: 30px;
+        }
+        .game-over {
+            color: #ff4444;
+        }
+        .level-up {
+            color: #44aa44;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" id="back-btn">← Atrás</a>
+        <h1>🎮 Busca Minas Infinito</h1>
+        <div class="stats">
+            <div>Nivel: <span id="level">1</span></div>
+            <div>Reveladas: <span id="revealed">0</span></div>
+            <div>Banderas: <span id="flags">0</span></div>
+        </div>
+        <div class="message" id="message"></div>
+        <div class="board" id="board"></div>
+        <button class="reset" onclick="initGame()">Nuevo Juego</button>
+    </div>
+
+    <script>
+        let board = [];
+        let revealed = [];
+        let flagged = [];
+        let level = 1;
+        let width = 10;
+        let height = 10;
+        let mineCount = 10;
+        let gameOver = false;
+
+        function initGame() {
+            width = 10;
+            height = 10;
+            mineCount = 10 + (level - 1) * 2;
+            board = [];
+            revealed = [];
+            flagged = [];
+            gameOver = false;
+
+            for (let i = 0; i < height * width; i++) {
+                revealed[i] = false;
+                flagged[i] = false;
+                board[i] = 0;
+            }
+
+            // Place mines
+            let placed = 0;
+            while (placed < mineCount) {
+                let pos = Math.floor(Math.random() * (width * height));
+                if (board[pos] !== 'M') {
+                    board[pos] = 'M';
+                    placed++;
+                }
+            }
+
+            // Calculate numbers
+            for (let i = 0; i < height * width; i++) {
+                if (board[i] !== 'M') {
+                    let count = 0;
+                    let row = Math.floor(i / width);
+                    let col = i % width;
+
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            let nr = row + dr;
+                            let nc = col + dc;
+                            if (nr >= 0 && nr < height && nc >= 0 && nc < width) {
+                                let pos = nr * width + nc;
+                                if (board[pos] === 'M') count++;
+                            }
+                        }
+                    }
+                    board[i] = count;
+                }
+            }
+
+            render();
+            updateStats();
+            document.getElementById('message').textContent = '';
+        }
+
+        function revealCell(pos) {
+            if (gameOver || revealed[pos] || flagged[pos]) return;
+
+            revealed[pos] = true;
+
+            if (board[pos] === 'M') {
+                document.getElementById('message').textContent = '💣 ¡Game Over!';
+                document.getElementById('message').classList.add('game-over');
+                gameOver = true;
+                revealAllMines();
+                render();
+                return;
+            }
+
+            if (board[pos] === 0) {
+                // Flood fill
+                let row = Math.floor(pos / width);
+                let col = pos % width;
+
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        let nr = row + dr;
+                        let nc = col + dc;
+                        if (nr >= 0 && nr < height && nc >= 0 && nc < width) {
+                            let npos = nr * width + nc;
+                            if (!revealed[npos] && !flagged[npos]) {
+                                revealCell(npos);
+                            }
+                        }
+                    }
+                }
+            }
+
+            updateStats();
+            checkWin();
+            render();
+        }
+
+        function toggleFlag(pos, e) {
+            e.preventDefault();
+            if (gameOver || revealed[pos]) return;
+
+            flagged[pos] = !flagged[pos];
+            updateStats();
+            render();
+        }
+
+        function revealAllMines() {
+            for (let i = 0; i < board.length; i++) {
+                if (board[i] === 'M') {
+                    revealed[i] = true;
+                }
+            }
+        }
+
+        function checkWin() {
+            let revealedCount = revealed.filter(r => r).length;
+            let safeCount = board.filter(b => b !== 'M').length;
+
+            if (revealedCount === safeCount) {
+                level++;
+                document.getElementById('message').textContent = '🎉 ¡Nivel Completado! Siguiente...';
+                document.getElementById('message').classList.remove('game-over');
+                document.getElementById('message').classList.add('level-up');
+                gameOver = true;
+                setTimeout(initGame, 2000);
+            }
+        }
+
+        function render() {
+            let boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+
+            for (let i = 0; i < board.length; i++) {
+                let cell = document.createElement('button');
+                cell.className = 'cell';
+
+                if (revealed[i]) {
+                    cell.classList.add('revealed');
+                    if (board[i] === 'M') {
+                        cell.classList.add('mine');
+                        cell.textContent = '💣';
+                    } else if (board[i] === 0) {
+                        cell.classList.add('empty');
+                        cell.textContent = '';
+                    } else {
+                        cell.textContent = board[i];
+                    }
+                    cell.disabled = true;
+                } else if (flagged[i]) {
+                    cell.classList.add('flagged');
+                    cell.textContent = '🚩';
+                } else {
+                    cell.textContent = '';
+                }
+
+                cell.onclick = () => revealCell(i);
+                cell.oncontextmenu = (e) => toggleFlag(i, e);
+                boardDiv.appendChild(cell);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('level').textContent = level;
+            document.getElementById('revealed').textContent = revealed.filter(r => r).length;
+            document.getElementById('flags').textContent = flagged.filter(f => f).length;
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
