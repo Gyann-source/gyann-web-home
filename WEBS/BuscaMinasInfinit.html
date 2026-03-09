@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busca Minas Infinito - Zoom & Pan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background: #1e1e1e; /* Color oscuro para reducir fatiga visual */
+        }
+
+        /* --- INTERFAZ DE USUARIO (UI) --- */
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ui-element {
+            pointer-events: auto;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        h1 { color: #333; margin: 0 0 10px 0; font-size: 22px; }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            font-size: 14px;
+        }
+
+        .stats div {
+            padding: 6px 12px;
+            background: #eee;
+            border-radius: 4px;
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        #back-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            padding: 8px 12px;
+            background: #2196f3;
+            color: #fff;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            pointer-events: auto;
+            font-size: 14px;
+        }
+
+        button.reset {
+            padding: 8px 20px;
+            font-size: 13px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .message { font-size: 18px; font-weight: bold; margin-top: 8px; min-height: 22px; }
+        .game-over { color: #ff4444; }
+        .level-up { color: #44aa44; }
+
+        /* --- ÁREA DE JUEGO --- */
+        #mundo {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+            overflow: hidden;
+        }
+        #mundo:active { cursor: grabbing; }
+
+        #tablero {
+            position: absolute;
+            transform-origin: 0 0; /* Crítico para que el zoom funcione correctamente */
+            will-change: transform;
+        }
+
+        .cell {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 1px solid #999;
+            box-sizing: border-box;
+            background: #bbb;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .cell.revealed { background: #e0e0e0; border: 1px solid #ccc; }
+        .cell.mine { background: #ff4444; color: white; }
+        .cell.flagged { background: #ffcc00; }
+        .cell.empty { color: #ccc; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <a href="../index.html" id="back-btn">← Atrás</a>
+        <div class="ui-element">
+            <h1>🎮 Busca Minas Infinito</h1>
+            <div class="stats">
+                <div>Nivel: <span id="level">1</span></div>
+                <div>Celdas: <span id="revealed">0</span></div>
+                <div>🚩: <span id="flags">0</span></div>
+            </div>
+            <div class="message" id="message"></div>
+            <button class="reset" onclick="initGame()">Reiniciar</button>
+        </div>
+    </div>
+
+    <div id="mundo">
+        <div id="tablero"></div>
+    </div>
+
+    <script>
+        const mundo = document.getElementById('mundo');
+        const tablero = document.getElementById('tablero');
+        const msgEl = document.getElementById('message');
+        
+        const TAM_CELDA = 40;
+        const PROB_MINA = 0.15;
+        const META_NIVEL = 50;
+
+        let celdas, gameOver, revealedCount, flagsCount, level;
+        
+        // Variables de Cámara (Transformación)
+        let offset = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        let zoom = 1.0;
+        const MIN_ZOOM = 0.3;
+        const MAX_ZOOM = 3.0;
+
+        let isDragging = false;
+        let startMouse = { x: 0, y: 0 };
+
+        function initGame() {
+            celdas = new Map();
+            gameOver = false;
+            revealedCount = 0;
+            flagsCount = 0;
+            level = 1;
+            
+            tablero.innerHTML = '';
+            msgEl.textContent = '';
+            
+            offset = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            zoom = 1.0;
+            
+            actualizarTransform();
+            updateStats();
+            renderizarCeldasVisibles();
+        }
+
+        function obtenerCelda(x, y) {
+            const id = `${x},${y}`;
+            if (celdas.has(id)) return celdas.get(id);
+
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.style.left = `${x * TAM_CELDA}px`;
+            cell.style.top = `${y * TAM_CELDA}px`;
+            
+            const obj = {
+                x, y,
+                esMina: Math.random() < PROB_MINA,
+                revelada: false,
+                bandera: false,
+                elemento: cell
+            };
+
+            cell.onmouseup = (e) => {
+                if (isDragging) return;
+                if (e.button === 0) revelar(x, y);
+            };
+
+            cell.oncontextmenu = (e) => {
+                e.preventDefault();
+                if (isDragging) return;
+                toggleFlag(x, y);
+            };
+
+            tablero.appendChild(cell);
+            celdas.set(id, obj);
+            return obj;
+        }
+
+        function contarMinas(x, y) {
+            let conteo = 0;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    if (i === 0 && j === 0) continue;
+                    if (obtenerCelda(x + i, y + j).esMina) conteo++;
+                }
+            }
+            return conteo;
+        }
+
+        function revelar(startX, startY) {
+            if (gameOver) return;
+            let initCell = obtenerCelda(startX, startY);
+            if (initCell.revelada || initCell.bandera) return;
+
+            if (initCell.esMina) {
+                perder(initCell);
+                return;
+            }
+
+            let cola = [initCell];
+            let procesadas = new Set([`${startX},${startY}`]);
+
+            while (cola.length > 0) {
+                let c = cola.shift();
+                c.revelada = true;
+                c.elemento.classList.add('revealed');
+                revealedCount++;
+
+                let minas = contarMinas(c.x, c.y);
+                if (minas > 0) {
+                    c.elemento.textContent = minas;
+                } else {
+                    c.elemento.classList.add('empty');
+                    for (let i = -1; i <= 1; i++) {
+                        for (let j = -1; j <= 1; j++) {
+                            let nx = c.x + i, ny = c.y + j;
+                            let id = `${nx},${ny}`;
+                            if (!procesadas.has(id)) {
+                                let v = obtenerCelda(nx, ny);
+                                if (!v.revelada && !v.bandera) {
+                                    cola.push(v);
+                                    procesadas.add(id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            updateStats();
+        }
+
+        function toggleFlag(x, y) {
+            if (gameOver) return;
+            const c = obtenerCelda(x, y);
+            if (c.revelada) return;
+            c.bandera = !c.bandera;
+            c.elemento.classList.toggle('flagged');
+            c.elemento.textContent = c.bandera ? '🚩' : '';
+            flagsCount += c.bandera ? 1 : -1;
+            updateStats();
+        }
+
+        function perder(minaPulsada) {
+            gameOver = true;
+            minaPulsada.elemento.classList.add('mine', 'revealed');
+            minaPulsada.elemento.textContent = '💥';
+            msgEl.textContent = '💣 ¡FIN DEL JUEGO!';
+            msgEl.className = 'message game-over';
+        }
+
+        function updateStats() {
+            document.getElementById('revealed').textContent = revealedCount;
+            document.getElementById('flags').textContent = flagsCount;
+            let n = Math.floor(revealedCount / META_NIVEL) + 1;
+            if (n > level) {
+                level = n;
+                document.getElementById('level').textContent = level;
+                msgEl.textContent = `⭐ ¡Nivel ${level}!`;
+                msgEl.className = 'message level-up';
+                setTimeout(() => { if(!gameOver) msgEl.textContent = ''; }, 2000);
+            }
+        }
+
+        // --- MOVIMIENTO Y ZOOM ---
+        function actualizarTransform() {
+            tablero.style.transform = `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`;
+        }
+
+        mundo.onmousedown = (e) => {
+            if (e.button !== 0) return;
+            isDragging = false;
+            startMouse = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+            window.onmousemove = (ev) => {
+                isDragging = true;
+                offset.x = ev.clientX - startMouse.x;
+                offset.y = ev.clientY - startMouse.y;
+                actualizarTransform();
+                renderizarCeldasVisibles();
+            };
+        };
+
+        window.onmouseup = () => { window.onmousemove = null; };
+
+        mundo.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+
+            // Punto en el tablero bajo el mouse
+            const targetX = (mouseX - offset.x) / zoom;
+            const targetY = (mouseY - offset.y) / zoom;
+
+            const factor = 1.1;
+            if (e.deltaY < 0) zoom = Math.min(MAX_ZOOM, zoom * factor);
+            else zoom = Math.max(MIN_ZOOM, zoom / factor);
+
+            // Ajustar offset para que el zoom siga al mouse
+            offset.x = mouseX - targetX * zoom;
+            offset.y = mouseY - targetY * zoom;
+
+            actualizarTransform();
+            renderizarCeldasVisibles();
+        }, { passive: false });
+
+        function renderizarCeldasVisibles() {
+            const margen = 2;
+            const anchoCeldaEscalada = TAM_CELDA * zoom;
+            
+            const inicioX = Math.floor(-offset.x / anchoCeldaEscalada) - margen;
+            const finX = inicioX + Math.ceil(window.innerWidth / anchoCeldaEscalada) + margen * 2;
+            
+            const inicioY = Math.floor(-offset.y / anchoCeldaEscalada) - margen;
+            const finY = inicioY + Math.ceil(window.innerHeight / anchoCeldaEscalada) + margen * 2;
+
+            for (let x = inicioX; x <= finX; x++) {
+                for (let y = inicioY; y <= finY; y++) {
+                    obtenerCelda(x, y);
+                }
+            }
+        }
+
+        mundo.oncontextmenu = (e) => e.preventDefault();
+        window.onresize = renderizarCeldasVisibles;
+
+        initGame();
+    </script>
+</body>
+</html>
