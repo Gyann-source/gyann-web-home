@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🥚 Tamagotchi</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
+
+  :root {
+    --bg: #1a0a2e;
+    --device: #2d1b69;
+    --device-light: #3d2b89;
+    --screen-bg: #0d1b2a;
+    --screen-green: #4ade80;
+    --screen-dim: #1a5c30;
+    --pixel: #a78bfa;
+    --accent: #f472b6;
+    --accent2: #facc15;
+    --btn: #6d28d9;
+    --btn-shadow: #3b0764;
+    --text: #e2d9f3;
+    --danger: #ef4444;
+    --warn: #f97316;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+  }
+
+  /* Starfield */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 20%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 80%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 75%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 90%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 55%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5% 50%, rgba(255,255,255,0.5) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .game-title {
+    color: var(--pixel);
+    font-size: 10px;
+    text-shadow: 0 0 20px var(--pixel), 2px 2px 0 #000;
+    letter-spacing: 4px;
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from { text-shadow: 0 0 10px var(--pixel), 2px 2px 0 #000; }
+    to   { text-shadow: 0 0 25px var(--pixel), 0 0 40px #a78bfa80, 2px 2px 0 #000; }
+  }
+
+  /* ===== DEVICE ===== */
+  .device {
+    width: 320px;
+    background: linear-gradient(160deg, var(--device-light) 0%, var(--device) 60%, #1a0a45 100%);
+    border-radius: 50% 50% 45% 45% / 40% 40% 55% 55%;
+    padding: 28px 24px 36px;
+    box-shadow:
+      0 0 0 4px #4c1d95,
+      0 0 0 7px #2d1b69,
+      0 20px 60px rgba(0,0,0,0.7),
+      inset 0 2px 8px rgba(255,255,255,0.1);
+    position: relative;
+  }
+
+  .device-shine {
+    position: absolute;
+    top: 18px;
+    left: 30px;
+    width: 80px;
+    height: 30px;
+    background: linear-gradient(120deg, rgba(255,255,255,0.15), transparent);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* ===== SCREEN ===== */
+  .screen-bezel {
+    background: #0a0a1a;
+    border-radius: 16px;
+    padding: 10px;
+    box-shadow: inset 0 4px 12px rgba(0,0,0,0.8), 0 0 0 3px #1a0a45;
+    margin-bottom: 20px;
+  }
+
+  .screen {
+    background: var(--screen-bg);
+    border-radius: 10px;
+    width: 100%;
+    height: 200px;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid #0a1520;
+    image-rendering: pixelated;
+  }
+
+  /* Scanlines */
+  .screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ===== SCENE ===== */
+  .scene {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 24px;
+  }
+
+  .floor {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 24px;
+    background: var(--screen-dim);
+    border-top: 2px solid var(--screen-green);
+  }
+
+  .sky-stars {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    display: none;
+  }
+
+  .sky-stars.night { display: block; }
+
+  .star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: var(--screen-green);
+    opacity: 0.5;
+    animation: twinkle 1.5s infinite alternate;
+  }
+
+  @keyframes twinkle {
+    from { opacity: 0.2; }
+    to { opacity: 0.8; }
+  }
+
+  /* ===== PET ===== */
+  .pet-container {
+    position: relative;
+    z-index: 2;
+  }
+
+  .pet {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    cursor: pointer;
+    image-rendering: pixelated;
+  }
+
+  .pet canvas {
+    width: 60px;
+    height: 60px;
+    image-rendering: pixelated;
+  }
+
+  .pet-shadow {
+    width: 36px;
+    height: 6px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 50%;
+    margin: 0 auto;
+    filter: blur(1px);
+  }
+
+  /* Poop */
+  .poop {
+    position: absolute;
+    bottom: 24px;
+    font-size: 16px;
+    animation: fadeIn 0.5s ease;
+    z-index: 3;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.5); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* Floating emojis */
+  .float-emoji {
+    position: absolute;
+    font-size: 14px;
+    animation: floatUp 1.2s ease forwards;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-50px) scale(1.4); }
+  }
+
+  /* Dead overlay */
+  .dead-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    z-index: 30;
+    display: none;
+  }
+
+  .dead-overlay.show { display: flex; }
+
+  .dead-overlay span {
+    font-family: 'VT323', monospace;
+    font-size: 28px;
+    color: var(--danger);
+    text-align: center;
+    line-height: 1.6;
+    text-shadow: 0 0 10px var(--danger);
+  }
+
+  /* Sleep ZZZ */
+  .zzz {
+    position: absolute;
+    top: 20px;
+    right: 30%;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    color: var(--screen-green);
+    opacity: 0;
+    display: none;
+    animation: zzzAnim 2s infinite;
+  }
+
+  .zzz.show { display: block; }
+
+  @keyframes zzzAnim {
+    0%   { opacity: 0; transform: translate(0,0) scale(0.8); }
+    30%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(10px,-20px) scale(1.2); }
+  }
+
+  /* ===== HUD ===== */
+  .hud {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 5;
+  }
+
+  .age-label {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    color: var(--screen-green);
+    line-height: 1;
+  }
+
+  .mood-icon {
+    font-size: 14px;
+  }
+
+  /* ===== STATS ===== */
+  .stats {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stat-label {
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    color: var(--text);
+    width: 72px;
+    flex-shrink: 0;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .stat-bar {
+    flex: 1;
+    height: 10px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .stat-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    position: relative;
+  }
+
+  .stat-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+  }
+
+  .fill-hunger { background: linear-gradient(90deg, #f97316, #facc15); }
+  .fill-happy  { background: linear-gradient(90deg, #f472b6, #a78bfa); }
+  .fill-energy { background: linear-gradient(90deg, #60a5fa, #4ade80); }
+  .fill-health { background: linear-gradient(90deg, #ef4444, #4ade80); }
+
+  .stat-val {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    width: 28px;
+    text-align: right;
+  }
+
+  /* ===== BUTTONS ===== */
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 0 4px;
+  }
+
+  .btn {
+    background: linear-gradient(180deg, var(--btn) 0%, var(--btn-shadow) 100%);
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-shadow:
+      0 4px 0 var(--btn-shadow),
+      0 6px 12px rgba(0,0,0,0.5),
+      inset 0 1px 2px rgba(255,255,255,0.2);
+    transition: transform 0.08s, box-shadow 0.08s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .btn:hover { filter: brightness(1.15); }
+
+  .btn:active {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 var(--btn-shadow),
+      0 2px 6px rgba(0,0,0,0.5),
+      inset 0 1px 2px rgba(255,255,255,0.2);
+  }
+
+  .btn .icon { font-size: 18px; }
+  .btn .lbl {
+    font-family: 'VT323', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .btn.sleep-btn { background: linear-gradient(180deg, #1e40af, #1e3a8a); box-shadow: 0 4px 0 #1e3a8a, 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.2); }
+  .btn.sleep-btn:active { box-shadow: 0 1px 0 #1e3a8a, 0 2px 6px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.2); }
+
+  .btn.clean-btn { background: linear-gradient(180deg, #065f46, #064e3b); box-shadow: 0 4px 0 #064e3b, 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.2); }
+  .btn.clean-btn:active { box-shadow: 0 1px 0 #064e3b, 0 2px 6px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.2); }
+
+  /* ===== NOTIFICATION ===== */
+  .notif {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--device);
+    border: 2px solid var(--pixel);
+    color: var(--text);
+    padding: 8px 16px;
+    font-size: 8px;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px #4c1d95;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .notif.show { transform: translateX(-50%) translateY(0); }
+
+  /* ===== MESSAGE LOG ===== */
+  .msg-log {
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    min-height: 18px;
+    transition: opacity 0.3s;
+  }
+
+  /* Bounce anim for pet */
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-8px); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25%       { transform: translateX(-4px); }
+    75%       { transform: translateX(4px); }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .bounce { animation: bounce 0.4s ease 2; }
+  .shake  { animation: shake 0.3s ease 3; }
+
+  /* Responsive */
+  @media (max-width: 380px) {
+    .device { width: 290px; }
+    .btn { width: 48px; height: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="game-title">✦ TAMAGOTCHI ✦</div>
+
+  <div class="device">
+    <div class="device-shine"></div>
+
+    <!-- SCREEN -->
+    <div class="screen-bezel">
+      <div class="screen" id="screen">
+        <div class="scene" id="scene">
+
+          <!-- Stars (night) -->
+          <div class="sky-stars" id="skyStars"></div>
+
+          <!-- HUD -->
+          <div class="hud">
+            <div class="age-label">AGE: <span id="ageDisplay">0</span>d</div>
+            <div class="mood-icon" id="moodIcon">😊</div>
+          </div>
+
+          <!-- Sleep ZZZ -->
+          <div class="zzz" id="zzzEl">z z z</div>
+
+          <!-- Pet -->
+          <div class="pet-container">
+            <div class="pet" id="petEl">
+              <canvas id="petCanvas" width="30" height="30"></canvas>
+            </div>
+            <div class="pet-shadow"></div>
+          </div>
+
+          <!-- Floor -->
+          <div class="floor"></div>
+
+          <!-- Dead overlay -->
+          <div class="dead-overlay" id="deadOverlay">
+            <span>💀<br>TU PET<br>HA MUERTO<br><br>CLICK PARA<br>REINICIAR</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat-row">
+        <div class="stat-label">🍔 Hambre</div>
+        <div class="stat-bar"><div class="stat-fill fill-hunger" id="barHunger" style="width:80%"></div></div>
+        <div class="stat-val" id="valHunger">80</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label">😄 Feliz</div>
+        <div class="stat-bar"><div class="stat-fill fill-happy" id="barHappy" style="width:80%"></div></div>
+        <div class="stat-val" id="valHappy">80</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label">⚡ Energía</div>
+        <div class="stat-bar"><div class="stat-fill fill-energy" id="barEnergy" style="width:80%"></div></div>
+        <div class="stat-val" id="valEnergy">80</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label">❤️ Salud</div>
+        <div class="stat-bar"><div class="stat-fill fill-health" id="barHealth" style="width:100%"></div></div>
+        <div class="stat-val" id="valHealth">100</div>
+      </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="buttons">
+      <button class="btn" id="btnFeed" onclick="action('feed')">
+        <span class="icon">🍔</span>
+        <span class="lbl">Comer</span>
+      </button>
+      <button class="btn" id="btnPlay" onclick="action('play')">
+        <span class="icon">🎮</span>
+        <span class="lbl">Jugar</span>
+      </button>
+      <button class="btn sleep-btn" id="btnSleep" onclick="action('sleep')">
+        <span class="icon">💤</span>
+        <span class="lbl">Dormir</span>
+      </button>
+      <button class="btn clean-btn" id="btnClean" onclick="action('clean')">
+        <span class="icon">🚿</span>
+        <span class="lbl">Limpiar</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="msg-log" id="msgLog">¡Tu mascota nació! Cuídala bien.</div>
+</div>
+
+<!-- Notification -->
+<div class="notif" id="notif"></div>
+
+<script>
+// ============================================================
+//  GAME STATE
+// ============================================================
+const STATE = {
+  hunger: 80,   // 0–100 (100=lleno, 0=muerto de hambre)
+  happy:  80,   // 0–100
+  energy: 80,   // 0–100
+  health: 100,  // 0–100
+  age: 0,       // días
+  poops: 0,
+  sleeping: false,
+  dead: false,
+  ageTimer: 0,
+  poopTimer: 0,
+  tick: 0,
+  anim: 'idle',
+  animFrame: 0,
+};
+
+// ============================================================
+//  PIXEL ART PETS (3 stages: baby 0–2d, child 3–6d, adult 7+d)
+// ============================================================
+// Each sprite: 15×15 pixel grid encoded as array of rows (0=bg,1=body,2=eye,3=mouth,4=belly)
+const SPRITES = {
+  baby: {
+    idle: [
+      "000011100000000",
+      "000111110000000",
+      "001111111000000",
+      "011122211100000",
+      "011121111100000",
+      "011111111100000",
+      "001133111000000",
+      "000011100000000",
+      "000011100000000",
+      "000001000000000",
+      "000001000000000",
+      "000111100000000",
+    ],
+    happy: [
+      "000011100000000",
+      "000111110000000",
+      "001111111000000",
+      "011122211100000",
+      "011141111100000",
+      "011111111100000",
+      "001113111000000",
+      "000011100000000",
+      "000011100000000",
+      "000001000000000",
+      "000111100000000",
+    ],
+    sleep: [
+      "000011100000000",
+      "000111110000000",
+      "001111111000000",
+      "011155511100000",
+      "011151111100000",
+      "011111111100000",
+      "001111111000000",
+      "000011100000000",
+      "000001000000000",
+      "000111100000000",
+    ],
+    dead: [
+      "000011100000000",
+      "000111110000000",
+      "001111111000000",
+      "011166611100000",
+      "011161111100000",
+      "011111111100000",
+      "001113111000000",
+      "000011100000000",
+    ],
+  },
+};
+
+// Color palette per pixel value
+const PALETTES = {
+  idle:  { 0:'transparent',1:'#a78bfa',2:'#1a0a2e',3:'#f472b6',4:'#facc15',5:'#60a5fa',6:'#ef4444' },
+  happy: { 0:'transparent',1:'#c4b5fd',2:'#1a0a2e',3:'#f472b6',4:'#facc15',5:'#60a5fa',6:'#ef4444' },
+  sleep: { 0:'transparent',1:'#6d28d9',2:'#1a0a2e',3:'#4c1d95',4:'#facc15',5:'#60a5fa',6:'#ef4444' },
+  dead:  { 0:'transparent',1:'#4b5563',2:'#1a0a2e',3:'#6b7280',4:'#9ca3af',5:'#60a5fa',6:'#ef4444' },
+};
+
+function getStage() {
+  if (STATE.age < 3) return 'baby';
+  if (STATE.age < 7) return 'child';
+  return 'adult';
+}
+
+// ============================================================
+//  CANVAS RENDERER
+// ============================================================
+const canvas = document.getElementById('petCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+function drawPet(mood) {
+  ctx.clearRect(0, 0, 30, 30);
+  const rows = SPRITES.baby[mood] || SPRITES.baby.idle;
+  const pal  = PALETTES[mood] || PALETTES.idle;
+  const pw = 2;
+  rows.forEach((row, y) => {
+    [...row].forEach((v, x) => {
+      if (v === '0') return;
+      ctx.fillStyle = pal[v] || '#fff';
+      ctx.fillRect(x * pw, y * pw, pw, pw);
+    });
+  });
+}
+
+// ============================================================
+//  UI HELPERS
+// ============================================================
+function updateBars() {
+  const stats = ['Hunger','Happy','Energy','Health'];
+  stats.forEach(s => {
+    const key = s.toLowerCase();
+    const val = Math.round(STATE[key]);
+    document.getElementById('bar'+s).style.width = val + '%';
+    document.getElementById('val'+s).textContent = val;
+    // Color warning
+    document.getElementById('bar'+s).style.opacity = val < 25 ? '0.7' : '1';
+  });
+}
+
+function setMsg(txt) {
+  document.getElementById('msgLog').textContent = txt;
+}
+
+let notifTO;
+function showNotif(txt) {
+  const el = document.getElementById('notif');
+  el.textContent = txt;
+  el.classList.add('show');
+  clearTimeout(notifTO);
+  notifTO = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function floatEmoji(emoji) {
+  const scene = document.getElementById('scene');
+  const el = document.createElement('div');
+  el.className = 'float-emoji';
+  el.textContent = emoji;
+  el.style.left = (30 + Math.random() * 80) + 'px';
+  el.style.bottom = '60px';
+  scene.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
+function animPet(anim) {
+  const petEl = document.getElementById('petEl');
+  petEl.classList.remove('bounce','shake');
+  void petEl.offsetWidth;
+  petEl.classList.add(anim);
+}
+
+function updateAge() {
+  document.getElementById('ageDisplay').textContent = STATE.age;
+}
+
+function updateMood() {
+  const avg = (STATE.hunger + STATE.happy + STATE.energy + STATE.health) / 4;
+  let icon = '😊';
+  if (STATE.sleeping) icon = '😴';
+  else if (avg > 75) icon = '😄';
+  else if (avg > 50) icon = '😊';
+  else if (avg > 30) icon = '😟';
+  else icon = '😰';
+  document.getElementById('moodIcon').textContent = icon;
+}
+
+function renderPoops() {
+  // Remove existing
+  document.querySelectorAll('.poop').forEach(e=>e.remove());
+  const scene = document.getElementById('scene');
+  for (let i = 0; i < Math.min(STATE.poops, 5); i++) {
+    const p = document.createElement('div');
+    p.className = 'poop';
+    p.textContent = '💩';
+    p.style.left = (10 + i * 36) + 'px';
+    scene.appendChild(p);
+  }
+}
+
+function buildStars() {
+  const sky = document.getElementById('skyStars');
+  sky.innerHTML = '';
+  for (let i=0;i<12;i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random()*100+'%';
+    s.style.top  = Math.random()*100+'%';
+    s.style.animationDelay = Math.random()*2+'s';
+    sky.appendChild(s);
+  }
+}
+
+buildStars();
+
+function setDayNight() {
+  const sky = document.getElementById('skyStars');
+  const screen = document.getElementById('screen');
+  if (STATE.sleeping) {
+    sky.classList.add('night');
+    screen.style.background = '#060e14';
+  } else {
+    sky.classList.remove('night');
+    screen.style.background = 'var(--screen-bg)';
+  }
+}
+
+// ============================================================
+//  ACTIONS
+// ============================================================
+function action(type) {
+  if (STATE.dead) return;
+
+  if (STATE.sleeping && type !== 'sleep') {
+    showNotif('⚠️ ¡Está durmiendo!');
+    return;
+  }
+
+  if (STATE.poops >= 4 && type !== 'clean') {
+    showNotif('🚨 ¡Limpia primero!');
+  }
+
+  switch(type) {
+    case 'feed':
+      if (STATE.hunger >= 100) { showNotif('🍔 ¡Ya está lleno!'); return; }
+      STATE.hunger = Math.min(100, STATE.hunger + 20);
+      STATE.happy  = Math.min(100, STATE.happy + 5);
+      floatEmoji('🍔');
+      animPet('bounce');
+      setMsg('¡Ñam ñam! Se comió todo.');
+      showNotif('🍔 +20 Hambre');
+      break;
+
+    case 'play':
+      if (STATE.energy < 15) { showNotif('😴 ¡Muy cansado!'); return; }
+      STATE.happy  = Math.min(100, STATE.happy + 20);
+      STATE.energy = Math.max(0, STATE.energy - 10);
+      STATE.hunger = Math.max(0, STATE.hunger - 5);
+      floatEmoji('🎉');
+      animPet('bounce');
+      setMsg('¡Yay! Le encantó jugar.');
+      showNotif('😄 +20 Felicidad');
+      break;
+
+    case 'sleep':
+      STATE.sleeping = !STATE.sleeping;
+      document.getElementById('zzzEl').classList.toggle('show', STATE.sleeping);
+      setDayNight();
+      if (STATE.sleeping) {
+        setMsg('Buenas noches... 💤');
+        showNotif('💤 Durmiendo...');
+      } else {
+        setMsg('¡Buenos días! Despertó.');
+        showNotif('☀️ ¡Despertó!');
+        floatEmoji('☀️');
+      }
+      break;
+
+    case 'clean':
+      if (STATE.poops === 0) { showNotif('✨ ¡Ya está limpio!'); return; }
+      STATE.poops = 0;
+      STATE.health = Math.min(100, STATE.health + 10);
+      renderPoops();
+      floatEmoji('✨');
+      animPet('bounce');
+      setMsg('¡Qué limpio quedó!');
+      showNotif('🚿 +10 Salud');
+      break;
+  }
+
+  redraw();
+}
+
+// ============================================================
+//  GAME LOOP
+// ============================================================
+function getMood() {
+  if (STATE.dead) return 'dead';
+  if (STATE.sleeping) return 'sleep';
+  const avg = (STATE.hunger + STATE.happy) / 2;
+  if (avg > 60) return 'happy';
+  return 'idle';
+}
+
+function redraw() {
+  drawPet(getMood());
+  updateBars();
+  updateMood();
+}
+
+setInterval(() => {
+  if (STATE.dead) return;
+
+  STATE.tick++;
+
+  // === SLEEPING ===
+  if (STATE.sleeping) {
+    STATE.energy = Math.min(100, STATE.energy + 2);
+    STATE.health = Math.min(100, STATE.health + 0.3);
+    STATE.hunger = Math.max(0, STATE.hunger - 0.3);
+    redraw();
+    return;
+  }
+
+  // === AWAKE DECAY ===
+  STATE.hunger = Math.max(0, STATE.hunger - 0.8);
+  STATE.happy  = Math.max(0, STATE.happy  - 0.5);
+  STATE.energy = Math.max(0, STATE.energy - 0.4);
+
+  // Poops affect health
+  if (STATE.poops > 0) {
+    STATE.health = Math.max(0, STATE.health - STATE.poops * 0.3);
+  }
+
+  // Low stats damage health
+  if (STATE.hunger < 20) STATE.health = Math.max(0, STATE.health - 0.5);
+  if (STATE.happy  < 20) STATE.health = Math.max(0, STATE.health - 0.2);
+  if (STATE.energy < 10) STATE.health = Math.max(0, STATE.health - 0.2);
+
+  // Poop timer (every 45s)
+  STATE.poopTimer++;
+  if (STATE.poopTimer >= 45) {
+    STATE.poopTimer = 0;
+    STATE.poops = Math.min(6, STATE.poops + 1);
+    renderPoops();
+    showNotif('💩 ¡Necesita limpieza!');
+  }
+
+  // Age timer (every 120s)
+  STATE.ageTimer++;
+  if (STATE.ageTimer >= 120) {
+    STATE.ageTimer = 0;
+    STATE.age++;
+    updateAge();
+    showNotif(`🎂 ¡${STATE.age} día${STATE.age>1?'s':''}! Tu pet creció.`);
+  }
+
+  // Warnings
+  if (STATE.tick % 20 === 0) {
+    if (STATE.hunger < 25)  { showNotif('🍔 ¡Tiene hambre!'); setMsg('¡Tengo hambre! 😢'); }
+    else if (STATE.happy < 25)  { showNotif('😢 ¡Está triste!'); setMsg('Quiero jugar... 😞'); }
+    else if (STATE.energy < 20) { showNotif('😴 ¡Está agotado!'); setMsg('Tengo sueño... 😴'); }
+    else if (STATE.health < 30) { showNotif('🚨 ¡Salud crítica!'); setMsg('No me siento bien... 😰'); }
+  }
+
+  // Death
+  if (STATE.health <= 0) {
+    STATE.dead = true;
+    drawPet('dead');
+    document.getElementById('deadOverlay').classList.add('show');
+    setMsg('Tu mascota murió... 💀');
+    return;
+  }
+
+  redraw();
+}, 1000);
+
+// Idle bob animation (canvas)
+let bobDir = 1, bobY = 0;
+setInterval(() => {
+  if (STATE.dead) return;
+  const petEl = document.getElementById('petEl');
+  bobY += bobDir * 0.4;
+  if (bobY > 3 || bobY < 0) bobDir *= -1;
+  petEl.style.transform = `translateY(${-bobY}px)`;
+}, 50);
+
+// Click pet
+document.getElementById('petEl').addEventListener('click', () => {
+  if (STATE.dead) return;
+  floatEmoji('💖');
+  STATE.happy = Math.min(100, STATE.happy + 3);
+  redraw();
+});
+
+// Click dead overlay → restart
+document.getElementById('deadOverlay').addEventListener('click', () => {
+  Object.assign(STATE, {
+    hunger:80, happy:80, energy:80, health:100,
+    age:0, poops:0, sleeping:false, dead:false,
+    ageTimer:0, poopTimer:0, tick:0
+  });
+  document.getElementById('deadOverlay').classList.remove('show');
+  document.getElementById('zzzEl').classList.remove('show');
+  STATE.poops = 0;
+  renderPoops();
+  updateAge();
+  setDayNight();
+  setMsg('¡Nueva mascota! Cuídala bien. 🥚');
+  redraw();
+});
+
+// ============================================================
+//  INIT
+// ============================================================
+redraw();
+updateAge();
+setDayNight();
+
+</script>
+</body>
+</html>
