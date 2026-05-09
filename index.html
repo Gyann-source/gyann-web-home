@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -180,13 +181,14 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h1>GYANN  HOME</h1>
-        
+        <h1>GYANN HOME</h1>
+
         <div class="carousel-wrapper">
             <button class="carousel-btn" onclick="scrollCarousel(-1)">❮</button>
-            
+
             <div class="carousel" id="carousel">
                 <!-- Tarjeta 1 -->
                 <div class="card" onclick="redirectTo('WEBS/memorama.html', event)">
@@ -202,7 +204,7 @@
 
                 <!-- Tarjeta 2 -->
                 <div class="card" onclick="redirectTo('WEBS/BuscaMinas.html', event)">
-                    <img src= "imgs webs/BuscaMinas.png" class="card-image">
+                    <img src="imgs webs/BuscaMinas.png" class="card-image">
                     <div class="card-content">
                         <div>
                             <div class="card-title">Busca Minas</div>
@@ -225,7 +227,7 @@
                 </div>
 
                 <!-- Tarjeta de Ejemplo 4 -->
-                <div class="card" onclick="redirectTo('WEBS/index2.html', event)">
+                <div class="card" onclick="redirectTo('WEBS/Interactive Ghost Card/calavera.html', event)">
                     <img src="https://via.placeholder.com/280x200?text=Página+4" alt="Página 4" class="card-image">
                     <div class="card-content">
                         <div>
@@ -237,7 +239,7 @@
                 </div>
 
                 <!-- Tarjeta de Ejemplo 5 -->
-                <div class="card" onclick="redirectTo('https://www.ejemplo.com', event)">
+                <div class="card" onclick="redirectTo('WEBS/Heart Animation/corazon.html', event)">
                     <img src="https://via.placeholder.com/280x200?text=Página+5" alt="Página 5" class="card-image">
                     <div class="card-content">
                         <div>
@@ -257,7 +259,7 @@
         function scrollCarousel(direction) {
             const carousel = document.getElementById('carousel');
             const scrollAmount = 320; // Ancho de la tarjeta + gap
-            
+
             if (direction === -1) {
                 carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
             } else {
@@ -271,7 +273,7 @@
         }
 
         // Permitir navegación con teclado
-        document.addEventListener('keydown', function(event) {
+        document.addEventListener('keydown', function (event) {
             if (event.key === 'ArrowLeft') {
                 scrollCarousel(-1);
             } else if (event.key === 'ArrowRight') {
@@ -280,4 +282,5 @@
         });
     </script>
 </body>
+
 </html>
